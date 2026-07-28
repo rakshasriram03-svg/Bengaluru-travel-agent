@@ -42,7 +42,7 @@ export function SettingsModal() {
               onChange={(e) => setDraftUrl(e.target.value)}
               onBlur={() => setWebhookUrl(draftUrl)}
               placeholder="https://your-n8n-domain/webhook/travel-assistant"
-              className="bg-black"
+              className="bg-muted"
             />
           </div>
 

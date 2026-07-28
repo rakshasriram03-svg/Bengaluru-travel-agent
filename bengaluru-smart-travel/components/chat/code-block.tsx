@@ -17,7 +17,14 @@ export function CodeBlock({ code, lang }: { code: string; lang?: string }) {
   return (
     <div className="my-1 overflow-hidden rounded-xl border border-border">
       <div className="flex items-center justify-between border-b border-border bg-black px-3 py-1.5 text-xs text-muted-foreground">
-        <span className="font-mono">{lang || "code"}</span>
+        <div className="flex items-center gap-2">
+          <span className="flex gap-1" aria-hidden>
+            <span className="h-2 w-2 rounded-full bg-red-500/70" />
+            <span className="h-2 w-2 rounded-full bg-amber-500/70" />
+            <span className="h-2 w-2 rounded-full bg-emerald-500/70" />
+          </span>
+          <span className="font-mono">{lang || "code"}</span>
+        </div>
         <button onClick={handleCopy} className="flex items-center gap-1 transition-colors hover:text-primary">
           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
           {copied ? "Copied" : "Copy"}

@@ -1,6 +1,6 @@
 import { Compass, Gauge, CloudSun, Sparkles } from "lucide-react";
 import { StatCard } from "@/components/insights/stat-card";
-import { StylizedMap } from "@/components/insights/stylized-map";
+import { RealMap } from "@/components/insights/real-map";
 import { Badge } from "@/components/ui/badge";
 import { EVENT_ALERTS } from "@/lib/constants";
 
@@ -20,9 +20,9 @@ export default function InsightsPage() {
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <StatCard icon={Gauge} label="Traffic Density" live>
-                <p className="mb-2 text-3xl font-bold text-sky-400">78%</p>
+                <p className="mb-2 text-3xl font-bold text-primary">78%</p>
                 <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-sky-400" style={{ width: "78%" }} />
+                  <div className="h-full rounded-full bg-primary" style={{ width: "78%" }} />
                 </div>
                 <p className="text-xs text-emerald-400">+12% vs Yesterday</p>
               </StatCard>
@@ -40,7 +40,7 @@ export default function InsightsPage() {
               </div>
               <div className="space-y-3">
                 {EVENT_ALERTS.map((ev) => (
-                  <div key={ev.title} className="flex items-start gap-3 rounded-xl border border-border bg-black/40 p-3">
+                  <div key={ev.title} className="flex items-start gap-3 rounded-xl border border-border bg-muted/50 p-3">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{ev.title}</p>
                       <p className="text-xs text-muted-foreground">{ev.meta}</p>
@@ -64,9 +64,9 @@ export default function InsightsPage() {
             </div>
           </div>
 
-          <div className="relative min-h-[420px] overflow-hidden rounded-2xl border border-border">
-            <StylizedMap />
-            <div className="absolute bottom-4 left-4 flex items-center gap-4 rounded-full bg-white/90 px-4 py-2 text-xs font-medium text-zinc-700 shadow backdrop-blur">
+          <div className="relative z-0 min-h-[420px] overflow-hidden rounded-2xl border border-border">
+            <RealMap />
+            <div className="absolute bottom-4 left-4 z-[1000] flex items-center gap-4 rounded-full border border-border bg-card/90 px-4 py-2 text-xs font-medium text-foreground shadow backdrop-blur">
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-violet-500" /> Congested</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-500" /> Normal</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Fluid</span>

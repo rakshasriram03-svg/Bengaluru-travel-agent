@@ -47,7 +47,7 @@ function renderInline(text: string, keyPrefix: string) {
     else if (match[3] !== undefined) parts.push(<em key={`${keyPrefix}-i-${i++}`}>{match[3]}</em>);
     else if (match[4] !== undefined)
       parts.push(
-        <code key={`${keyPrefix}-c-${i++}`} className="rounded bg-black/60 px-1.5 py-0.5 font-mono text-[13px] text-primary">
+        <code key={`${keyPrefix}-c-${i++}`} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[13px] text-primary">
           {match[4]}
         </code>
       );
@@ -94,14 +94,94 @@ export function MarkdownContent({ text }: { text: string }) {
           listBuffer = [];
         }
       };
-      lines.forEach((line, idx) => {
-        const trimmed = line.trim();
-        if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) listBuffer.push(trimmed.slice(2));
-        else {
+
+      const isSeparatorRow = (line: string) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(line);
+      const splitRow = (line: string) => line.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+
+      let idx = 0;
+      while (idx < lines.length) {
+        const trimmed = lines[idx].trim();
+
+        if (trimmed.startsWith("|") && lines[idx + 1] && isSeparatorRow(lines[idx + 1])) {
           flushList(idx);
-          if (trimmed.length > 0) parBlocks.push(<p key={idx}>{renderInline(trimmed, `${i}-${idx}`)}</p>);
+          const headerCells = splitRow(trimmed);
+          const rows: string[][] = [];
+          idx += 2;
+          while (idx < lines.length && lines[idx].trim().startsWith("|")) {
+            rows.push(splitRow(lines[idx]));
+            idx++;
+          }
+          parBlocks.push(
+            <div key={`tbl-${i}-${idx}`} className="my-1 overflow-x-auto rounded-xl border border-border">
+              <table className="w-full border-collapse text-left text-sm">
+                <thead className="bg-accent/60">
+                  <tr>
+                    {headerCells.map((c, ci) => (
+                      <th key={ci} className="whitespace-nowrap px-3 py-2 font-semibold text-foreground">
+                        {renderInline(c, `th-${i}-${ci}`)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, ri) => (
+                    <tr key={ri} className="border-t border-border">
+                      {r.map((c, ci) => (
+                        <td key={ci} className="px-3 py-2 text-muted-foreground">
+                          {renderInline(c, `td-${i}-${ri}-${ci}`)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+          continue;
         }
-      });
+
+        const headingMatch = trimmed.match(/^(#{1,4})\s+(.*)$/);
+        if (headingMatch) {
+          flushList(idx);
+          const level = headingMatch[1].length;
+          const content = renderInline(headingMatch[2], `${i}-${idx}`);
+          const HeadingTag: React.ElementType = level === 1 ? "h3" : level === 2 ? "h4" : "h5";
+          const headingClass =
+            level === 1
+              ? "text-base font-bold text-foreground"
+              : level === 2
+                ? "text-sm font-semibold text-foreground"
+                : "text-xs font-semibold uppercase tracking-wide text-primary";
+          parBlocks.push(
+            <HeadingTag key={`h-${i}-${idx}`} className={`${headingClass} mt-1`}>
+              {content}
+            </HeadingTag>
+          );
+          idx++;
+          continue;
+        }
+
+        if (trimmed.startsWith("> ")) {
+          flushList(idx);
+          parBlocks.push(
+            <blockquote key={`bq-${i}-${idx}`} className="border-l-2 border-primary/40 pl-3 text-sm italic text-muted-foreground">
+              {renderInline(trimmed.slice(2), `${i}-${idx}`)}
+            </blockquote>
+          );
+          idx++;
+          continue;
+        }
+
+        if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
+          listBuffer.push(trimmed.slice(2));
+          idx++;
+          continue;
+        }
+
+        flushList(idx);
+        if (trimmed.length > 0) parBlocks.push(<p key={idx}>{renderInline(trimmed, `${i}-${idx}`)}</p>);
+        idx++;
+      }
       flushList("end");
       blocks.push(
         <div key={`p-${i}`} className="space-y-2">

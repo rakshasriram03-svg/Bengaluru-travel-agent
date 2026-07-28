@@ -3,6 +3,15 @@ export type MessageRole = "user" | "assistant";
 export interface ItineraryItem {
   time: string;
   text: string;
+  name?: string;
+  category?: string;
+  rating?: number;
+  address?: string;
+  hours?: string;
+  weather?: string;
+  distance?: string;
+  tags?: string[];
+  mapsQuery?: string;
 }
 
 export interface ItineraryDay {
@@ -26,6 +35,8 @@ export interface ChatMessageType {
   animate?: boolean;
   /** Structured rich reply (used for the bundled demo itinerary). */
   itinerary?: Itinerary;
+  /** Set when this assistant message represents a failed/empty reply, for distinct error-state rendering. */
+  errorType?: "network" | "timeout" | "empty";
 }
 
 export interface ChatSession {

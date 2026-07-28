@@ -124,45 +124,61 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const requestReply = useCallback(
     async (sessionId: string, promptText: string) => {
       setIsTyping(true);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
       try {
-        console.log("Webhook URL:", webhookUrl);
-console.log("Sending:", { message: promptText });
-
-console.log("Webhook URL:", webhookUrl);
-console.log("Prompt:", promptText);
-alert("Fetch is about to run");
-const response = await fetch(webhookUrl, {
+        const response = await fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: promptText }),
+          signal: controller.signal,
         });
-        console.log("Status:", response.status);
-console.log("OK:", response.ok);
 
         if (!response.ok) throw new Error(`Webhook responded with ${response.status}`);
         const data = (await response.json()) as WebhookResponse;
-        const replyText =
-          typeof data?.reply === "string" && data.reply.length
-            ? data.reply
-            : "Hmm, I didn't get a proper reply from the travel assistant. Please try again.";
+        const replyText = typeof data?.reply === "string" ? data.reply : "";
+
+        if (!replyText.trim()) {
+          updateSessionMessages(sessionId, (msgs) => [
+            ...msgs,
+            {
+              id: `empty-${Date.now()}`,
+              role: "assistant",
+              content: "I didn't come back with any suggestions for that one. Try rephrasing, or ask something else about your trip.",
+              timestamp: Date.now(),
+              animate: false,
+              errorType: "empty",
+            },
+          ]);
+          return;
+        }
 
         updateSessionMessages(sessionId, (msgs) => [
           ...msgs,
           { id: `a-${Date.now()}`, role: "assistant", content: replyText, timestamp: Date.now(), animate: true },
         ]);
-      } catch {
-        pushToast("Sorry, I couldn't reach the travel assistant. Please try again.");
+      } catch (err) {
+        const timedOut = err instanceof DOMException && err.name === "AbortError";
+        pushToast(
+          timedOut
+            ? "The travel assistant is taking too long to respond."
+            : "Sorry, I couldn't reach the travel assistant. Please try again."
+        );
         updateSessionMessages(sessionId, (msgs) => [
           ...msgs,
           {
             id: `err-${Date.now()}`,
             role: "assistant",
-            content: "Sorry, I couldn't reach the travel assistant. Please try again.",
+            content: timedOut
+              ? "This is taking longer than expected — the assistant might be busy right now."
+              : "Sorry, I couldn't reach the travel assistant. Please check your connection and try again.",
             timestamp: Date.now(),
             animate: false,
+            errorType: timedOut ? "timeout" : "network",
           },
         ]);
       } finally {
+        clearTimeout(timeoutId);
         setIsTyping(false);
       }
     },
