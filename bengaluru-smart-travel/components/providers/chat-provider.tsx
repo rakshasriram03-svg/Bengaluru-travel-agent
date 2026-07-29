@@ -125,7 +125,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     async (sessionId: string, promptText: string) => {
       setIsTyping(true);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
       try {
         const response = await fetch(webhookUrl, {
           method: "POST",
