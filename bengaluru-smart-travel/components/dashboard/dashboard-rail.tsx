@@ -1,11 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertTriangle, Bookmark, CloudSun, MapPin, Plus } from "lucide-react";
-import { EVENT_ALERTS, HOURLY_WEATHER, SAVED_PLACES } from "@/lib/constants";
+import { EVENT_ALERTS, SAVED_PLACES } from "@/lib/constants";
 import { useChat } from "@/components/providers/chat-provider";
+
+interface WeatherSummary {
+  temp: number;
+  condition: string;
+  hourly: { time: string; temp: number }[];
+}
 
 const toneClasses: Record<string, string> = {
   amber: "border-amber-500/30 bg-amber-500/10 text-amber-400",
@@ -22,6 +29,20 @@ const QUICK_ACTIONS = [
 export function DashboardRail() {
   const router = useRouter();
   const { newChat } = useChat();
+  const [weather, setWeather] = useState<WeatherSummary | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/weather")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!cancelled && json) setWeather(json);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <motion.aside
@@ -41,14 +62,16 @@ export function DashboardRail() {
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-3xl font-bold text-foreground">28°C</p>
-            <p className="text-xs text-muted-foreground">Mostly Sunny, Bengaluru</p>
+            <p className="text-3xl font-bold text-foreground">{weather ? `${weather.temp}°C` : "—"}</p>
+            <p className="text-xs text-muted-foreground">
+              {weather ? `${weather.condition}, Bengaluru` : "Loading…"}
+            </p>
           </div>
           <div className="flex gap-2.5">
-            {HOURLY_WEATHER.slice(0, 3).map((h) => (
-              <div key={h.t} className="flex flex-col items-center gap-1 text-[10px] text-muted-foreground">
-                <span>{h.t}</span>
-                <span className="font-medium text-foreground">{h.v}</span>
+            {(weather?.hourly ?? []).slice(0, 3).map((h, i) => (
+              <div key={i} className="flex flex-col items-center gap-1 text-[10px] text-muted-foreground">
+                <span>{h.time}</span>
+                <span className="font-medium text-foreground">{h.temp}°</span>
               </div>
             ))}
           </div>

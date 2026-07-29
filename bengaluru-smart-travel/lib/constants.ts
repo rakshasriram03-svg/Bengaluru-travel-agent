@@ -131,13 +131,3 @@ export const SAVED_PLACES = [
   { name: "Nandi Hills", tag: "Day Trip" },
   { name: "ISKCON Temple", tag: "Temple" },
 ];
-
-export const HOURLY_WEATHER = [
-  { t: "Now", v: "28°" },
-  { t: "1PM", v: "29°" },
-  { t: "2PM", v: "30°" },
-  { t: "3PM", v: "29°" },
-  { t: "4PM", v: "27°" },
-  { t: "5PM", v: "26°" },
-  { t: "6PM", v: "24°" },
-];
