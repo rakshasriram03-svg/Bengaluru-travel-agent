@@ -1,17 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Moon, Sun, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useChat } from "@/components/providers/chat-provider";
 
 export function SettingsModal() {
-  const { settingsOpen, setSettingsOpen, dark, setDark, webhookUrl, setWebhookUrl, clearAll } = useChat();
-  const [draftUrl, setDraftUrl] = useState(webhookUrl);
-
-  useEffect(() => setDraftUrl(webhookUrl), [webhookUrl, settingsOpen]);
+  const { settingsOpen, setSettingsOpen, dark, setDark, clearAll } = useChat();
 
   return (
     <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
@@ -33,17 +28,6 @@ export function SettingsModal() {
             >
               {dark ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4 text-primary" />}
             </button>
-          </div>
-
-          <div>
-            <p className="mb-1.5 text-sm font-medium">n8n webhook URL</p>
-            <Input
-              value={draftUrl}
-              onChange={(e) => setDraftUrl(e.target.value)}
-              onBlur={() => setWebhookUrl(draftUrl)}
-              placeholder="https://your-n8n-domain/webhook/travel-assistant"
-              className="bg-muted"
-            />
           </div>
 
           <div>

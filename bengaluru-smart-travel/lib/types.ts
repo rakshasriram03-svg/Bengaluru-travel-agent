@@ -51,7 +51,3 @@ export interface Toast {
   message: string;
   type: "error" | "info";
 }
-
-export interface WebhookResponse {
-  reply: string;
-}

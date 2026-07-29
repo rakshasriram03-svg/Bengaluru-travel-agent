@@ -1,10 +1,11 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { DEFAULT_WEBHOOK_URL, DEMO_ITINERARY, STORAGE_KEYS } from "@/lib/constants";
+import { DEMO_ITINERARY, STORAGE_KEYS } from "@/lib/constants";
 import { readStorage, writeStorage } from "@/lib/storage";
-import type { ChatMessageType, ChatSession, Toast, WebhookResponse } from "@/lib/types";
+import type { ChatMessageType, ChatSession, Toast } from "@/lib/types";
 import { useToasts } from "@/hooks/use-toasts";
+import { fetchWeatherSnapshot, generateDemoReply } from "@/lib/demo-assistant";
 
 function makeWelcomeMessage(): ChatMessageType {
   return {
@@ -29,8 +30,6 @@ function makeSession(title = "New Trip"): ChatSession {
 interface ChatContextValue {
   dark: boolean;
   setDark: (v: boolean) => void;
-  webhookUrl: string;
-  setWebhookUrl: (v: string) => void;
   sessions: ChatSession[];
   currentId: string | null;
   currentSession: ChatSession | undefined;
@@ -54,7 +53,6 @@ const ChatContext = createContext<ChatContextValue | null>(null);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [dark, setDarkState] = useState(true);
-  const [webhookUrl, setWebhookUrlState] = useState(DEFAULT_WEBHOOK_URL);
   const [sessions, setSessions] = useState<ChatSession[]>([makeSession()]);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
@@ -66,9 +64,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const savedTheme = readStorage<string>(STORAGE_KEYS.theme);
     if (savedTheme) setDarkState(savedTheme === "dark");
-
-    const savedWebhook = readStorage<string>(STORAGE_KEYS.webhook);
-    if (savedWebhook) setWebhookUrlState(savedWebhook);
 
     const savedSessions = readStorage<ChatSession[]>(STORAGE_KEYS.sessions);
     const savedCurrent = readStorage<string>(STORAGE_KEYS.currentSession);
@@ -105,10 +100,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     writeStorage(STORAGE_KEYS.theme, dark ? "dark" : "light");
   }, [dark]);
 
-  useEffect(() => {
-    writeStorage(STORAGE_KEYS.webhook, webhookUrl);
-  }, [webhookUrl]);
-
   const currentSession = sessions.find((s) => s.id === currentId) ?? sessions[0];
   const messages = currentSession ? currentSession.messages : [];
 
@@ -124,65 +115,29 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const requestReply = useCallback(
     async (sessionId: string, promptText: string) => {
       setIsTyping(true);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
       try {
-        const response = await fetch(webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: promptText }),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) throw new Error(`Webhook responded with ${response.status}`);
-        const data = (await response.json()) as WebhookResponse;
-        const replyText = typeof data?.reply === "string" ? data.reply : "";
-
-        if (!replyText.trim()) {
-          updateSessionMessages(sessionId, (msgs) => [
-            ...msgs,
-            {
-              id: `empty-${Date.now()}`,
-              role: "assistant",
-              content: "I didn't come back with any suggestions for that one. Try rephrasing, or ask something else about your trip.",
-              timestamp: Date.now(),
-              animate: false,
-              errorType: "empty",
-            },
-          ]);
-          return;
-        }
-
-        updateSessionMessages(sessionId, (msgs) => [
-          ...msgs,
-          { id: `a-${Date.now()}`, role: "assistant", content: replyText, timestamp: Date.now(), animate: true },
+        const [weather] = await Promise.all([
+          fetchWeatherSnapshot(),
+          new Promise((resolve) => setTimeout(resolve, 600 + Math.random() * 500)),
         ]);
-      } catch (err) {
-        const timedOut = err instanceof DOMException && err.name === "AbortError";
-        pushToast(
-          timedOut
-            ? "The travel assistant is taking too long to respond."
-            : "Sorry, I couldn't reach the travel assistant. Please try again."
-        );
+        const { content, itinerary } = generateDemoReply(promptText, weather);
+
         updateSessionMessages(sessionId, (msgs) => [
           ...msgs,
           {
-            id: `err-${Date.now()}`,
+            id: `a-${Date.now()}`,
             role: "assistant",
-            content: timedOut
-              ? "This is taking longer than expected — the assistant might be busy right now."
-              : "Sorry, I couldn't reach the travel assistant. Please check your connection and try again.",
+            content,
+            itinerary,
             timestamp: Date.now(),
-            animate: false,
-            errorType: timedOut ? "timeout" : "network",
+            animate: !itinerary,
           },
         ]);
       } finally {
-        clearTimeout(timeoutId);
         setIsTyping(false);
       }
     },
-    [webhookUrl, updateSessionMessages, pushToast]
+    [updateSessionMessages]
   );
 
   const sendMessage = useCallback(
@@ -248,8 +203,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const value: ChatContextValue = {
     dark,
     setDark: setDarkState,
-    webhookUrl,
-    setWebhookUrl: setWebhookUrlState,
     sessions,
     currentId,
     currentSession,

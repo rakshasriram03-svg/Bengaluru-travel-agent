@@ -1,13 +1,9 @@
 import type { Itinerary } from "./types";
 
-export const DEFAULT_WEBHOOK_URL =
-  "https://sriramms.app.n8n.cloud/webhook/travel-assistant";
-
 export const STORAGE_KEYS = {
   sessions: "bsta_sessions_v1",
   currentSession: "bsta_current_session_v1",
   theme: "bsta_theme_v1",
-  webhook: "bsta_webhook_v1",
 } as const;
 
 /**
